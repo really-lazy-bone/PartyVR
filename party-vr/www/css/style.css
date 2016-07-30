@@ -43,10 +43,20 @@ splash-screen {
 
   background-color: rgba(0,0,0,0.5);
   color: #fff;
+}
+.overlay.padding {
   padding: 1em 3em;
 }
 .overlay.left {
   right: calc(50% + 2em);
+}
+.menu-item {
+  padding: 0.5em 1em;
+  font-weight: 800;
+  border-left: solid transparent 0.5em;
+}
+.menu-item.active {
+  border-left: solid #f00 0.5em;
 }
 
 .overlay h1 {

@@ -39,6 +39,28 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
 })
 
 .controller('VideoCtrl', function($scope) {
+  $scope.currentItemIndex = 0;
+  $scope.doubleClicked = false;
+  document.querySelector('video-wall')
+    .addEventListener('click', function() {
+      setTimeout(function() {
+        if (!$scope.doubleClicked) {
+          $scope.currentItemIndex ++;
+          if ($scope.currentItemIndex === 3) {
+            $scope.currentItemIndex = 0;
+          }
+          $scope.$apply();
+        }
+      }, 300);
+    }, false);
+  document.querySelector('video-wall')
+    .addEventListener('dblclick', function() {
+      $scope.doubleClicked = true;
+      alert($scope.currentItemIndex);
+      setTimeout(function() {
+        $scope.doubleClicked = false;
+      }, 500);
+    }, false);
 })
 
 .controller('HomeCtrl', function($scope, $state) {
@@ -172,7 +194,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     // MAIN
 
     // standard global variables
-    var container, scene, camera, renderer, controls, stats;
+    var container, scene, camera, renderer, controls;
 
     // custom global variables
     var video, videoImage, videoImageContext, videoTexture, movieScreen;
@@ -225,7 +247,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
     	floorTexture.repeat.set( 10, 10 );
     	var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
-    	var floorGeometry = new THREE.PlaneGeometry(1000, 1000, 10, 10);
+    	var floorGeometry = new THREE.PlaneGeometry(5000, 5000, 10, 10);
     	var floor = new THREE.Mesh(floorGeometry, floorMaterial);
     	floor.position.y = -0.5;
     	floor.rotation.x = Math.PI / 2;
@@ -393,7 +415,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
       camera.updateProjectionMatrix();
 
       renderer.setSize(width, height);
-      // effect.setSize(width, height);
+      effect.setSize(width, height);
     	controls.update();
     }
 
@@ -441,7 +463,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
         video3.pause();
       }
 
-    	renderer.render( scene, camera );
+    	effect.render( scene, camera );
     }
 
     function distance(a, b) {
