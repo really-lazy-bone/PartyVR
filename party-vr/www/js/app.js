@@ -301,13 +301,26 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
 
     	scene.add(floor);
     	// SKYBOX/FOG
-    	var skyBoxGeometry = new THREE.CubeGeometry( 10000, 10000, 10000 );
-    	var skyBoxMaterial = new THREE.MeshBasicMaterial( { color: 0x9999ff, side: THREE.BackSide } );
+      // BOX container MATERIAL
+    	var cubeMaterialArray = [];
+    	// order to add materials: x+,x-,y+,y-,z+,z-
+    	var wallTexture = new THREE.ImageUtils.loadTexture( 'img/dark-space-texture.jpg' );
+    	// floor: mesh to receive shadows
+    	cubeMaterialArray.push(new THREE.MeshLambertMaterial({ map: wallTexture, side: THREE.DoubleSide }));
+    	cubeMaterialArray.push(new THREE.MeshLambertMaterial({ map: wallTexture, side: THREE.DoubleSide }));
+    	cubeMaterialArray.push(new THREE.MeshBasicMaterial({ map: wallTexture, side: THREE.DoubleSide }));
+
+    	cubeMaterialArray.push(new THREE.MeshLambertMaterial({ map: wallTexture, side: THREE.DoubleSide }));
+    	cubeMaterialArray.push(new THREE.MeshLambertMaterial({ map: wallTexture, side: THREE.DoubleSide }));
+    	cubeMaterialArray.push(new THREE.MeshLambertMaterial({ map: wallTexture, side: THREE.DoubleSide }));
+    	var skyBoxMaterial = new THREE.MeshFaceMaterial(cubeMaterialArray);
+
+    	var skyBoxGeometry = new THREE.CubeGeometry( 1000, 1000, 1000 );
     	var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
     	scene.add(skyBox);
-    	scene.fog = new THREE.FogExp2( 0x9999ff, 0.00025 );
+    	scene.fog = new THREE.FogExp2( 0x9999ff, 0 );
 
-      //ball
+      // ball
     	var ballContainer = new THREE.Object3D();
     	var radius = 100;
     	var distance = 500;
