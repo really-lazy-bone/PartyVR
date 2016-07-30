@@ -1,5 +1,5 @@
-# Sports 360
+# PartyVR
 
-Social 360 degree sports video sharing from the field to DirectTV.
+PartyVR: Find the perfect DJ for you event in an immersive VR experience.
 
-Hackathon app built within 24 hours in AT&T Shape Challenge.
+Hackathon app built within 24 hours in AT&T Mobile Hackathon Los Angeles
