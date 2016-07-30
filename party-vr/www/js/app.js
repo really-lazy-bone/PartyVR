@@ -22,17 +22,17 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
         controller: 'HomeCtrl'
       })
       .state('video-wall', {
-        url: '/video-wall',
+        url: '/video-wall/:dj',
         templateUrl: 'templates/video-wall.html',
         controller: 'VideoCtrl'
       });
     $urlRouterProvider.otherwise('/home');
 })
 
-.controller('VideoCtrl', function($scope, $timeout) {
+.controller('VideoCtrl', function($scope, $timeout, $state, $stateParams) {
   $scope.currentItemIndex = 0;
   $scope.doubleClicked = false;
-  $scope.dj = 'afrojack';
+  $scope.dj = $stateParams.dj;
 
   document.querySelector('video-wall')
     .addEventListener('click', function() {
@@ -42,7 +42,8 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
           if ($scope.currentItemIndex === 3) {
             $scope.currentItemIndex = 0;
           }
-          $scope.dj = $scope.dj === 'afrojack' ? 'martin-garrix' : 'afrojack';
+          var newDj = ($scope.dj === 'afrojack') ? 'martin-garrix' : 'afrojack';
+          $state.go('video-wall', {dj: newDj});
         }
       }, 300);
     }, false);
@@ -59,7 +60,8 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
         }, 2000);
       } else if ($scope.currentItemIndex === 1) {
         // go to next person
-        $scope.dj = $scope.dj === 'afrojack' ? 'martin-garrix' : 'afrojack';
+        var newDj = ($scope.dj === 'afrojack') ? 'martin-garrix' : 'afrojack';
+        $state.go('video-wall', {dj: newDj});
       } else  if ($scope.currentItemIndex === 2) {
         // go to webrtc call screen
       }
@@ -71,7 +73,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
 
 .controller('HomeCtrl', function($scope, $state) {
   $scope.goToProfile = function() {
-    $state.go('video-wall');
+    $state.go('video-wall', {dj: 'afrojack'});
   }
 })
 
