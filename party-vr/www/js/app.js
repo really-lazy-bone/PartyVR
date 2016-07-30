@@ -38,23 +38,24 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     $urlRouterProvider.otherwise('/home');
 })
 
-.controller('VideoCtrl', function() {
-
+.controller('VideoCtrl', function($scope) {
 })
 
-.controller('HomeCtrl', function() {
-
+.controller('HomeCtrl', function($scope, $state) {
+  $scope.goToProfile = function() {
+    $state.go('video-wall');
+  }
 })
 
 .directive('splashScreen', [function() {
   return {
     restrict: 'E',
     link: function($scope, $element, $attr) {
-      create($element[0]);
+      create($element[0], $scope);
     }
   };
 
-  function create(glFrame) {
+  function create(glFrame, $scope) {
     var scene,
       camera,
       renderer,
@@ -65,6 +66,10 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
       clock;
 
       init();
+
+    glFrame.addEventListener('click', function() {
+      $scope.goToProfile();
+    });
 
     function init() {
       scene = new THREE.Scene();
@@ -163,230 +168,288 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
   }
 
   function create(glFrame) {
+
+    // MAIN
+
+    // standard global variables
+    var container, scene, camera, renderer, controls, stats;
+
+    // custom global variables
+    var video, videoImage, videoImageContext, videoTexture, movieScreen;
+    var video2, videoImage2, videoImageContext2, videoTexture2, movieScreen2;
+    var video3, videoImage3, videoImageContext3, videoTexture3, movieScreen3;
+
+    var raycasterPointer;
+
+    var scene,
+      camera,
+      renderer,
+      element,
+      container,
+      effect,
+      controls,
+      clock;
+
     init();
+    animate();
 
-    function init() {
-      // Carousel
-      // =====================================================
-      //
-      var double = 2;
+    // FUNCTIONS
+    function init()
+    {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.001, 700);
+      camera.position.set(0, 15, 0);
+      scene.add(camera);
+  		renderer = new THREE.WebGLRenderer();
+      element = renderer.domElement;
+      container = glFrame;
+      container.appendChild(element);
 
-      function Carousel(videos) {
-          // Initialize and configure the carousel
-          this.videoDimensions = {
-              width: 1024,
-              height: 1024
-          };
-          this.sphereDepth = 6000;
-          this.sphereSegments = {
-              width: 3,
-              height: 1
-          };
-          this.sphereFaces = this.sphereSegments.width * this.sphereSegments.height;
-          this.initialCameraPosition = 1500;
+      effect = new THREE.StereoEffect(renderer);
 
-          // Set up the scene
-          this.renderer = this.initRenderer();
-          var element = this.renderer.domElement;
-          element.addEventListener('click', like, false);
-          element.addEventListener('dblclick', dislike, false);
+      // Our initial control fallback with mouse/touch events in case DeviceOrientation is not enabled
+      controls = new THREE.OrbitControls(camera, element);
+      controls.target.set(
+        camera.position.x + 0.15,
+        camera.position.y,
+        camera.position.z
+      );
+      controls.noPan = true;
+      controls.noZoom = true;
+    	// LIGHT
+    	var light = new THREE.PointLight(0xffffff);
+    	light.position.set(0,250,0);
+    	scene.add(light);
+    	// FLOOR
+    	var floorTexture = new THREE.ImageUtils.loadTexture( 'img/checkerboard.jpg' );
+    	floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+    	floorTexture.repeat.set( 10, 10 );
+    	var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
+    	var floorGeometry = new THREE.PlaneGeometry(1000, 1000, 10, 10);
+    	var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    	floor.position.y = -0.5;
+    	floor.rotation.x = Math.PI / 2;
+    	scene.add(floor);
+    	// SKYBOX/FOG
+    	var skyBoxGeometry = new THREE.CubeGeometry( 10000, 10000, 10000 );
+    	var skyBoxMaterial = new THREE.MeshBasicMaterial( { color: 0x9999ff, side: THREE.BackSide } );
+    	var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
+    	// scene.add(skyBox);
+    	scene.fog = new THREE.FogExp2( 0x9999ff, 0.00025 );
 
-          this.scene = this.initScene();
-          this.camera = this.initCamera(this.sphereDepth, this.initialCameraPosition);
 
-          this.clock = new THREE.Clock();
+    	///////////
+    	// VIDEO //
+    	///////////
 
-          // // Set up videos and panes
-          this.videoPanes = this.initVideoPanes(videos, this.videoDimensions, this.sphereSegments);
-          this.materials = this.initMaterials(this.videoPanes, this.sphereFaces);
+    	// create the video element
+    	video = document.createElement( 'video' );
+    	// video.id = 'video';
+    	// video.type = ' video/ogg; codecs="theora, vorbis" ';
+    	video.src = "videos/afrojack-1.mp4";
+    	video.load(); // must call after setting/changing source
+    	// video.play();
 
-          // // Create the sphere
-          this.sphere = this.initSphereMesh(this.sphereDepth, this.sphereSegments, this.materials);
+    	// alternative method --
+    	// create DIV in HTML:
+    	// <video id="myVideo" autoplay style="display:none">
+    	//		<source src="videos/sintel.ogv" type='video/ogg; codecs="theora, vorbis"'>
+    	// </video>
+    	// and set JS variable:
+    	// video = document.getElementById( 'myVideo' );
+
+    	videoImage = document.createElement( 'canvas' );
+    	videoImage.width = 360;
+    	videoImage.height = 360;
+
+    	videoImageContext = videoImage.getContext( '2d' );
+    	// background color if no video present
+    	videoImageContext.fillStyle = '#000000';
+    	videoImageContext.fillRect( 0, 0, videoImage.width, videoImage.height );
+
+    	videoTexture = new THREE.Texture( videoImage );
+    	videoTexture.minFilter = THREE.LinearFilter;
+    	videoTexture.magFilter = THREE.LinearFilter;
+
+    	var movieMaterial = new THREE.MeshBasicMaterial( { map: videoTexture, overdraw: true, side:THREE.DoubleSide } );
+    	// the geometry on which the movie will be displayed;
+    	// 		movie image will be scaled to fit these dimensions.
+    	var movieGeometry = new THREE.PlaneGeometry( 360, 360, 4, 4 );
+    	movieScreen = new THREE.Mesh( movieGeometry, movieMaterial );
+    	movieScreen.position.set(-60,180,0);
+    	scene.add(movieScreen);
+
+      // create the video element
+    	video2 = document.createElement( 'video' );
+    	// video.id = 'video';
+    	// video.type = ' video/ogg; codecs="theora, vorbis" ';
+    	video2.src = "videos/afrojack-2.mp4";
+    	video2.load(); // must call after setting/changing source
+    	// video2.play();
+
+    	// alternative method --
+    	// create DIV in HTML:
+    	// <video id="myVideo" autoplay style="display:none">
+    	//		<source src="videos/sintel.ogv" type='video/ogg; codecs="theora, vorbis"'>
+    	// </video>
+    	// and set JS variable:
+    	// video = document.getElementById( 'myVideo' );
+
+    	videoImage2 = document.createElement( 'canvas' );
+    	videoImage2.width = 360;
+    	videoImage2.height = 360;
+
+    	videoImageContext2 = videoImage2.getContext( '2d' );
+    	// background color if no video present
+    	videoImageContext2.fillStyle = '#000000';
+    	videoImageContext2.fillRect( 0, 0, videoImage2.width, videoImage2.height );
+
+    	videoTexture2 = new THREE.Texture( videoImage2 );
+    	videoTexture2.minFilter = THREE.LinearFilter;
+    	videoTexture2.magFilter = THREE.LinearFilter;
+
+    	var movieMaterial2 = new THREE.MeshBasicMaterial( { map: videoTexture2, overdraw: true, side:THREE.DoubleSide } );
+    	// the geometry on which the movie will be displayed;
+    	// 		movie image will be scaled to fit these dimensions.
+    	var movieGeometry2 = new THREE.PlaneGeometry( 360, 360, 4, 4 );
+    	movieScreen2 = new THREE.Mesh( movieGeometry2, movieMaterial2 );
+    	movieScreen2.position.set(360,180,150);
+      movieScreen2.rotateY(30);
+    	scene.add(movieScreen2);
+
+      // create the video element
+    	video3 = document.createElement( 'video' );
+    	// video.id = 'video';
+    	// video.type = ' video/ogg; codecs="theora, vorbis" ';
+    	video3.src = "videos/afrojack-3.mp4";
+    	video3.load(); // must call after setting/changing source
+    	// video3.play();
+
+    	// alternative method --
+    	// create DIV in HTML:
+    	// <video id="myVideo" autoplay style="display:none">
+    	//		<source src="videos/sintel.ogv" type='video/ogg; codecs="theora, vorbis"'>
+    	// </video>
+    	// and set JS variable:
+    	// video = document.getElementById( 'myVideo' );
+
+    	videoImage3 = document.createElement( 'canvas' );
+    	videoImage3.width = 360;
+    	videoImage3.height = 360;
+
+    	videoImageContext3 = videoImage3.getContext( '2d' );
+    	// background color if no video present
+    	videoImageContext3.fillStyle = '#000000';
+    	videoImageContext3.fillRect( 0, 0, videoImage3.width, videoImage3.height );
+
+    	videoTexture3 = new THREE.Texture( videoImage3 );
+    	videoTexture3.minFilter = THREE.LinearFilter;
+    	videoTexture3.magFilter = THREE.LinearFilter;
+
+    	var movieMaterial3 = new THREE.MeshBasicMaterial( { map: videoTexture3, overdraw: true, side:THREE.DoubleSide } );
+    	// the geometry on which the movie will be displayed;
+    	// 		movie image will be scaled to fit these dimensions.
+    	var movieGeometry3 = new THREE.PlaneGeometry( 360, 360, 4, 4 );
+    	movieScreen3 = new THREE.Mesh( movieGeometry3, movieMaterial3 );
+    	movieScreen3.position.set(-360,180,150);
+      movieScreen3.rotateY(-30);
+    	scene.add(movieScreen3);
+
+      var focus = new THREE.PointLight(0x00ccff, 1, 20);
+      focus.position.set(0, 0, -10);
+      camera.add(focus);
+      raycasterPointer = new THREE.Mesh(new THREE.SphereGeometry(.2, 32, 32), new THREE.MeshBasicMaterial({color: 0xff0000}));
+      scene.add(raycasterPointer);
+
+    	camera.position.set(0,200,200);
+      // Our preferred controls via DeviceOrientation
+      function setOrientationControls(e) {
+        if (!e.alpha) {
+          return;
+        }
+
+        controls = new THREE.DeviceOrientationControls(camera, true);
+        controls.connect();
+        controls.update();
+
+        window.removeEventListener('deviceorientation', setOrientationControls, true);
+      }
+      window.addEventListener('deviceorientation', setOrientationControls, true);
+    }
+
+    function animate()
+    {
+      requestAnimationFrame( animate );
+    	render();
+    	update();
+    }
+
+    function update()
+    {
+      var width = container.offsetWidth;
+      var height = container.offsetHeight;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(width, height);
+      // effect.setSize(width, height);
+    	controls.update();
+    }
+
+    function render()
+    {
+    	if ( video.readyState === video.HAVE_ENOUGH_DATA )
+    	{
+    		videoImageContext.drawImage( video, 0, 0 );
+    		if ( videoTexture )
+    			videoTexture.needsUpdate = true;
+    	}
+
+      if ( video2.readyState === video2.HAVE_ENOUGH_DATA )
+    	{
+    		videoImageContext2.drawImage( video2, 0, 0 );
+    		if ( videoTexture2 )
+    			videoTexture2.needsUpdate = true;
+    	}
+
+      if ( video3.readyState === video3.HAVE_ENOUGH_DATA )
+    	{
+    		videoImageContext3.drawImage( video3, 0, 0 );
+    		if ( videoTexture3 )
+    			videoTexture3.needsUpdate = true;
+    	}
+
+      var cameraDirection = camera.getWorldDirection();
+      raycasterPointer.position.set(camera.position.x + (cameraDirection.x * 17), camera.position.y + (cameraDirection.y * 17), camera.position.z + (cameraDirection.z * 17));
+
+      if (distance(movieScreen.position, raycasterPointer.position) < 200) {
+        video.play();
+      } else {
+        video.pause();
       }
 
-      Carousel.prototype.initRenderer = function() {
-          // Set up the WebGL renderer
-          var renderer = new THREE.WebGLRenderer();
-          renderer.setSize(window.innerWidth, window.innerHeight);
-          return renderer;
-      };
-
-      Carousel.prototype.initScene = function() {
-          // Create the scene
-          return new THREE.Scene();
-      };
-
-      Carousel.prototype.initCamera = function(depth, position) {
-          // Set up the camera
-          var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, depth);
-          camera.position.z = position;
-          return camera;
-      };
-
-      Carousel.prototype.initMaterials = function(videoPanes, faces) {
-          // Load all of the video pane materials to apply to the sphere mesh
-          var materials = [];
-          for (i=0; i < videoPanes.length; i++) {
-              materials.push(videoPanes[i].material);
-          }
-          return materials;
-      };
-
-      Carousel.prototype.initSphereMesh = function(sphereDepth, sphereSegments, materials) {
-          // Create the spherical mesh
-          var geometry = new THREE.SphereGeometry(sphereDepth/2, sphereSegments.width, sphereSegments.height, 0, 3, 1, 1.2);
-          for (var i=0; i < geometry.faces.length; i++) {
-              geometry.faces[i].materialIndex = i % materials.length;
-          }
-          var mesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
-          return mesh;
-      };
-
-      Carousel.prototype.initVideoPanes = function(videos, dimensions, segments) {
-          // Create video panes with calculated positions for the list of videos
-          var videoPanes = [];
-
-          for (var i=0; i < videos.length; i++) {
-              var video = videos[i];
-              var videoPane = new VideoPane(
-                  video,
-                  dimensions,
-                  segments
-              );
-              videoPanes.push(videoPane);
-          }
-
-          return videoPanes;
-      };
-
-      Carousel.prototype.setupScene = function() {
-          // Set up the initial scene and add it to the dom
-          this.sphere.position.z = this.sphereDepth/2;
-          this.scene.add(this.sphere);
-          glFrame.appendChild(this.renderer.domElement);
-      };
-
-      Carousel.prototype.animate = function() {
-          // Animate a frame of the carousel
-          var obj = this;
-          requestAnimationFrame(function() {
-              return obj.animate();
-          });
-          var effect = new THREE.StereoEffect(this.renderer);
-          resize(this.camera, this.renderer, effect);
-
-          // Check each video for updates
-          for (var i=0; i < obj.videoPanes.length; i++) {
-              var videoPane = obj.videoPanes[i];
-              if (videoPane.video.readyState === videoPane.video.HAVE_ENOUGH_DATA && videoPane.lastDrawTime !== videoPane.video.currentTime) {
-                  videoPane.context.drawImage(videoPane.video, 0, 0, obj.videoDimensions.width, obj.videoDimensions.height);
-                  videoPane.lastDrawTime = videoPane.video.currentTime;
-              }
-              videoPane.texture.needsUpdate = true;
-          }
-
-          // Our preferred controls via DeviceOrientation
-          function setOrientationControls(e) {
-            if (!e.alpha) {
-              return;
-            }
-
-            controls = new THREE.DeviceOrientationControls(obj.camera, true);
-            controls.connect();
-            controls.update();
-
-            window.removeEventListener('deviceorientation', setOrientationControls, true);
-          }
-          window.addEventListener('deviceorientation', setOrientationControls, true);
-
-          // Render the scene
-          effect.render(obj.scene, obj.camera);
-      };
-
-      function resize(camera, renderer, effect) {
-        var width = glFrame.offsetWidth;
-        var height = glFrame.offsetHeight;
-
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-
-        renderer.setSize(width, height);
-        effect.setSize(width, height);
+      if (distance(movieScreen2.position, raycasterPointer.position) < 350) {
+        video2.play();
+      } else {
+        video2.pause();
       }
 
-
-      // VideoPane
-      // =====================================================
-      //
-
-      function VideoPane(video, dimensions, segments) {
-          // Initialize video and position
-          this.video = video;
-          this.lastDrawTime = -1;
-
-          // Set up material
-          this.canvas = this.initCanvas(dimensions.width, dimensions.height);
-          this.context = this.initContext(this.canvas);
-          this.texture = this.initTexture(this.canvas, segments);
-          this.material = this.initMaterial(this.texture);
+      if (distance(movieScreen3.position, raycasterPointer.position) < 350) {
+        video3.play();
+      } else {
+        video3.pause();
       }
 
-      VideoPane.prototype.initCanvas = function(width, height) {
-          // Set up the canvas
-          var canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          return canvas;
-      };
+    	renderer.render( scene, camera );
+    }
 
-      VideoPane.prototype.initContext = function(canvas) {
-          // Style initial context
-          var context = this.canvas.getContext('2d');
-          context.translate(canvas.width, 0);
-          context.scale(-1, 1);
-          context.fillStyle = '#000000';
-          context.fillRect(0, 0, canvas.width, canvas.height);
-          return context;
-      };
-
-      VideoPane.prototype.initTexture = function(canvas, segments) {
-          // Create a repeating texture from the canvas
-          var texture = new THREE.Texture(canvas);
-          texture.minFilter = THREE.LinearFilter;
-          texture.magFilter = THREE.LinearFilter;
-          texture.wrapS = THREE.RepeatWrapping;
-          texture.wrapT = THREE.RepeatWrapping;
-          texture.repeat.set(segments.width, segments.height);
-          return texture;
-      };
-
-      VideoPane.prototype.initMaterial = function(texture) {
-          // Create basic material to apply to the sphere
-          var material = new THREE.MeshBasicMaterial({
-              map: texture
-          });
-          material.side = THREE.BackSide;
-          return material;
-      };
-
-      function like() {
-        setTimeout(function() {
-          if (double > 0) {
-            double --;
-          } else {
-            alert('like');
-          }
-        }, 300);
-      }
-
-      function dislike() {
-        double = 2;
-        alert('dislike');
-      }
-
-      var carousel = new Carousel(document.getElementsByTagName('video'));
-      carousel.setupScene();
-      carousel.animate();
+    function distance(a, b) {
+      deltaX = b.x - a.x;
+      deltaY = b.y - a.y;
+      deltaZ = b.z - a.z;
+      var d = Math.sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
+      return d;
     }
   }
 }]);
