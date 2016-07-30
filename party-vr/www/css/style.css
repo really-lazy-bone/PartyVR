@@ -44,11 +44,22 @@ splash-screen {
   background-color: rgba(0,0,0,0.5);
   color: #fff;
 }
+.overlay.party-menu {
+  top: 9em;
+}
+.overlay.center {
+  right: 7em;
+  top: 8em;
+}
 .overlay.padding {
   padding: 1em 3em;
 }
 .overlay.left {
   right: calc(50% + 2em);
+}
+.overlay.center.left {
+  right: calc(50% + 7em);
+  top: 8em;
 }
 .menu-item {
   padding: 0.5em 1em;
@@ -67,6 +78,26 @@ splash-screen {
 .animated.slow {
   -webkit-animation-duration: 3s;
   animation-duration: 3s;
+}
+
+.success {
+  width: 8em;
+}
+
+.checkmark {
+  stroke: green;
+  stroke-dashoffset: 745.74853515625;
+  stroke-dasharray: 745.74853515625;
+  animation: dash 2s ease-out forwards infinite;
+}
+
+@keyframes dash {
+  0% {
+    stroke-dashoffset: 745.74853515625;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
 }
 
 video {

@@ -1,16 +1,7 @@
-// angular.module is a global place for creating, registering and retrieving Angular modules
-// 'starter' is the name of this angular module example (also set in a <body> attribute in index.html)
-// the 2nd parameter is an array of 'requires'
 angular.module('PartyVR', ['ionic', 'ngCordova'])
 
 .run(function($ionicPlatform) {
   $ionicPlatform.ready(function() {
-    // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
-    // for form inputs).
-    // The reason we default this to hidden is that native apps don't usually show an accessory bar, at
-    // least on iOS. It's a dead giveaway that an app is using a Web View. However, it's sometimes
-    // useful especially with forms, though we would prefer giving the user a little more room
-    // to interact with the app.
     if (window.cordova && window.cordova.plugins.Keyboard) {
       cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
       cordova.plugins.Keyboard.disableScroll(true);
@@ -38,26 +29,41 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     $urlRouterProvider.otherwise('/home');
 })
 
-.controller('VideoCtrl', function($scope) {
+.controller('VideoCtrl', function($scope, $timeout) {
   $scope.currentItemIndex = 0;
   $scope.doubleClicked = false;
+  $scope.dj = 'afrojack';
+
   document.querySelector('video-wall')
     .addEventListener('click', function() {
-      setTimeout(function() {
+      $timeout(function() {
         if (!$scope.doubleClicked) {
           $scope.currentItemIndex ++;
           if ($scope.currentItemIndex === 3) {
             $scope.currentItemIndex = 0;
           }
-          $scope.$apply();
+          $scope.dj = $scope.dj === 'afrojack' ? 'martin-garrix' : 'afrojack';
         }
       }, 300);
     }, false);
   document.querySelector('video-wall')
     .addEventListener('dblclick', function() {
       $scope.doubleClicked = true;
-      alert($scope.currentItemIndex);
-      setTimeout(function() {
+      if ($scope.currentItemIndex === 0) {
+        // display success checkmark
+        $scope.hideMenu = true;
+        $scope.showSuccess = true;
+        $timeout(function() {
+          $scope.hideMenu = false;
+          $scope.showSuccess = false;
+        }, 2000);
+      } else if ($scope.currentItemIndex === 1) {
+        // go to next person
+        $scope.dj = $scope.dj === 'afrojack' ? 'martin-garrix' : 'afrojack';
+      } else  if ($scope.currentItemIndex === 2) {
+        // go to webrtc call screen
+      }
+      $timeout(function() {
         $scope.doubleClicked = false;
       }, 500);
     }, false);
@@ -184,13 +190,15 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
 
   return {
     restrict: 'E',
+    scope: {
+      person: '='
+    },
     link: function($scope, $element, $attr) {
-      create($element[0]);
+      create($element[0], $scope);
     }
   }
 
-  function create(glFrame) {
-
+  function create(glFrame, $scope) {
     // MAIN
 
     // standard global variables
@@ -200,6 +208,32 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     var video, videoImage, videoImageContext, videoTexture, movieScreen;
     var video2, videoImage2, videoImageContext2, videoTexture2, movieScreen2;
     var video3, videoImage3, videoImageContext3, videoTexture3, movieScreen3;
+
+    // custom global variables
+    var ball;
+    var ballSpeed = 0.06; //default ball speed
+    var lightSpeed = 0.5;
+
+    //array of lights
+    var spotlights = [];
+    var lightTargets = [];
+    var lightColors = [];
+    var lightAmount = 30;
+
+    //create an array of floor and wall spotlights:
+    for (var i=0; i<lightAmount ;i++){
+
+    	lightColors[i] = getRandomColor();
+    	//for floor
+    	spotlights[i] = new THREE.SpotLight(lightColors[i]);
+    	spotlights[i].position.set(0,500,200);
+    	spotlights[i].shadowCameraVisible = true;
+    	spotlights[i].intensity = 3;
+    	spotlights[i].castShadow = true;
+    	spotlights[i].angle = Math.PI/30;
+    	lightTargets[i] = new THREE.Object3D();
+
+    }
 
     var raycasterPointer;
 
@@ -220,7 +254,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     {
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.001, 700);
-      camera.position.set(0, 15, 0);
+      camera.position.set(0, 180, 0);
       scene.add(camera);
   		renderer = new THREE.WebGLRenderer();
       element = renderer.domElement;
@@ -239,25 +273,71 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
       controls.noPan = true;
       controls.noZoom = true;
     	// LIGHT
-    	var light = new THREE.PointLight(0xffffff);
-    	light.position.set(0,250,0);
-    	scene.add(light);
+      var directionalLight1 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+    	directionalLight1.position.set( 1, 0, 0 );
+    	scene.add( directionalLight1 );
+    	var directionalLight2 = new THREE.DirectionalLight( 0xffffff, 0.2 );
+    	directionalLight2.position.set( 0, 1, 0 );
+    	scene.add( directionalLight2 );
+    	var directionalLight3 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+    	directionalLight3.position.set( 0, 0, 1 );
+    	scene.add( directionalLight3 );
+    	var directionalLight4 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+    	directionalLight4.position.set( -1, 0, 0 );
+    	scene.add( directionalLight4 );
+    	var directionalLight5 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+    	directionalLight5.position.set( 0, 0, -1 );
+    	scene.add( directionalLight5 );
     	// FLOOR
     	var floorTexture = new THREE.ImageUtils.loadTexture( 'img/checkerboard.jpg' );
     	floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
     	floorTexture.repeat.set( 10, 10 );
-    	var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
-    	var floorGeometry = new THREE.PlaneGeometry(5000, 5000, 10, 10);
+    	var floorMaterial = new THREE.MeshLambertMaterial( { map: floorTexture, side: THREE.DoubleSide } );
+    	var floorGeometry = new THREE.PlaneBufferGeometry(1000, 1000, 10, 10);
     	var floor = new THREE.Mesh(floorGeometry, floorMaterial);
     	floor.position.y = -0.5;
     	floor.rotation.x = Math.PI / 2;
+      floor.receiveShadow = true;
+
     	scene.add(floor);
     	// SKYBOX/FOG
     	var skyBoxGeometry = new THREE.CubeGeometry( 10000, 10000, 10000 );
     	var skyBoxMaterial = new THREE.MeshBasicMaterial( { color: 0x9999ff, side: THREE.BackSide } );
     	var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
-    	// scene.add(skyBox);
+    	scene.add(skyBox);
     	scene.fog = new THREE.FogExp2( 0x9999ff, 0.00025 );
+
+      //ball
+    	var ballContainer = new THREE.Object3D();
+    	var radius = 100;
+    	var distance = 500;
+    	var colors = [];
+
+    	var sphereGeometry = new THREE.SphereGeometry( radius, 32, 32);
+    	var texture = new THREE.ImageUtils.loadTexture('img/discoBallTexture.jpg');
+
+      var sphereMaterial = new THREE.MeshBasicMaterial( {map: texture} );
+    	ball = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    	ball.position.set(0, distance, 200);
+
+    	ballContainer.add(ball);
+    	scene.add(ballContainer);
+
+      //======================================================//
+      //position the array of lights onto the scene
+      for (var i=0; i<lightAmount ;i++){
+      	scene.add(spotlights[i]);
+
+      	lightTargets[i].position.x=Math.random()*500-100;
+      	lightTargets[i].position.y=200;
+      	lightTargets[i].position.z=Math.random()*300-100;
+
+      	scene.add(lightTargets[i]);
+
+        console.log(lightTargets[i].position);
+
+      	spotlights[i].target = lightTargets[i];
+      }
 
 
     	///////////
@@ -268,7 +348,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	video = document.createElement( 'video' );
     	// video.id = 'video';
     	// video.type = ' video/ogg; codecs="theora, vorbis" ';
-    	video.src = "videos/afrojack-1.mp4";
+    	video.src = "videos/" + $scope.person + "-1.mp4";
     	video.load(); // must call after setting/changing source
     	// video.play();
 
@@ -296,7 +376,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	var movieMaterial = new THREE.MeshBasicMaterial( { map: videoTexture, overdraw: true, side:THREE.DoubleSide } );
     	// the geometry on which the movie will be displayed;
     	// 		movie image will be scaled to fit these dimensions.
-    	var movieGeometry = new THREE.PlaneGeometry( 360, 360, 4, 4 );
+    	var movieGeometry = new THREE.PlaneBufferGeometry( 360, 360, 4, 4 );
     	movieScreen = new THREE.Mesh( movieGeometry, movieMaterial );
     	movieScreen.position.set(-60,180,0);
     	scene.add(movieScreen);
@@ -305,7 +385,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	video2 = document.createElement( 'video' );
     	// video.id = 'video';
     	// video.type = ' video/ogg; codecs="theora, vorbis" ';
-    	video2.src = "videos/afrojack-2.mp4";
+    	video2.src = "videos/" + $scope.person + "-2.mp4";
     	video2.load(); // must call after setting/changing source
     	// video2.play();
 
@@ -333,7 +413,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	var movieMaterial2 = new THREE.MeshBasicMaterial( { map: videoTexture2, overdraw: true, side:THREE.DoubleSide } );
     	// the geometry on which the movie will be displayed;
     	// 		movie image will be scaled to fit these dimensions.
-    	var movieGeometry2 = new THREE.PlaneGeometry( 360, 360, 4, 4 );
+    	var movieGeometry2 = new THREE.PlaneBufferGeometry( 360, 360, 4, 4 );
     	movieScreen2 = new THREE.Mesh( movieGeometry2, movieMaterial2 );
     	movieScreen2.position.set(360,180,150);
       movieScreen2.rotateY(30);
@@ -343,7 +423,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	video3 = document.createElement( 'video' );
     	// video.id = 'video';
     	// video.type = ' video/ogg; codecs="theora, vorbis" ';
-    	video3.src = "videos/afrojack-3.mp4";
+    	video3.src = "videos/" + $scope.person + "-3.mp4";
     	video3.load(); // must call after setting/changing source
     	// video3.play();
 
@@ -371,7 +451,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	var movieMaterial3 = new THREE.MeshBasicMaterial( { map: videoTexture3, overdraw: true, side:THREE.DoubleSide } );
     	// the geometry on which the movie will be displayed;
     	// 		movie image will be scaled to fit these dimensions.
-    	var movieGeometry3 = new THREE.PlaneGeometry( 360, 360, 4, 4 );
+    	var movieGeometry3 = new THREE.PlaneBufferGeometry( 360, 360, 4, 4 );
     	movieScreen3 = new THREE.Mesh( movieGeometry3, movieMaterial3 );
     	movieScreen3.position.set(-360,180,150);
       movieScreen3.rotateY(-30);
@@ -463,6 +543,21 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
         video3.pause();
       }
 
+      // PARTY ON
+      ball.rotation.y += ballSpeed;
+      for(var i=0;i<lightAmount;i++){
+
+    		if(lightTargets[i].position.x < 200&&lightTargets[i].position.z < 200){
+
+    			lightTargets[i].position.x=lightTargets[i].position.x+(Math.random()*200-100)*lightSpeed;
+    			lightTargets[i].position.z=lightTargets[i].position.z+(Math.random()*200-100)*lightSpeed;
+    		}
+    		else {
+    			lightTargets[i].position.x=Math.random()*500-100;
+    			lightTargets[i].position.z=Math.random()*200-100;
+    		}
+    	}
+
     	effect.render( scene, camera );
     }
 
@@ -473,5 +568,14 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
       var d = Math.sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
       return d;
     }
+  }
+
+  function getRandomColor() {
+  	var letters = '0123456789ABCDEF'.split('');
+  	var color = '#';
+  	for (var i = 0; i < 6; i++ ) {
+  		color += letters[Math.round(Math.random() * 15)];
+  	}
+  	return color;
   }
 }]);
