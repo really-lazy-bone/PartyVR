@@ -423,6 +423,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     init();
     animate();
 
+
     // FUNCTIONS
     function init()
     {
@@ -651,13 +652,34 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
       var currentArtistTextMesh = new THREE.Mesh(currentArtistText, new THREE.MeshBasicMaterial({
         color: 0xffffff, opacity: 1
       }))
+
       currentArtistTextMesh.position.y = 360;
       currentArtistTextMesh.position.z = 30;
-      currentArtistTextMesh.position.x = -80;
+      currentArtistTextMesh.position.x = -120;
       currentArtistTextMesh.rotation.x = -100;
       currentArtistTextMesh.rotation.y = -270;
 
       scene.add(currentArtistTextMesh);
+
+      var artistProfilePicMap = {
+        "afrojack":"img/afrojack-info-card.png",
+        "martin-garrix":"img/martin-garrix-info-card.png",
+        "kaskade":"img/kaskade-info-card.png"
+      }
+
+      var artistProfileTexture = THREE.ImageUtils.loadTexture(artistProfilePicMap[artistName]);
+      artistProfileTexture.flipX = true;
+      var artistProfileImg = new THREE.MeshBasicMaterial({ //CHANGED to MeshBasicMaterial
+         map:artistProfileTexture, side:THREE.DoubleSide
+      });
+     artistProfileImg.map.needsUpdate = true; //ADDED
+
+     // plane
+     var artistProfilePlane = new THREE.Mesh(new THREE.PlaneBufferGeometry(360, 360, 4, 4),artistProfileImg);
+     artistProfilePlane.position.set(-50,180,400);
+     artistProfilePlane.overdraw = true;
+     scene.add(artistProfilePlane);
+
 
       var focus = new THREE.PointLight(0x00ccff, 1, 20);
       focus.position.set(0, 0, -10);
