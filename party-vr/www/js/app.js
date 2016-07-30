@@ -42,8 +42,6 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
           if ($scope.currentItemIndex === 3) {
             $scope.currentItemIndex = 0;
           }
-          var newDj = ($scope.dj === 'afrojack') ? 'martin-garrix' : 'afrojack';
-          $state.go('video-wall', {dj: newDj});
         }
       }, 300);
     }, false);
@@ -473,7 +471,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	scene.add(movieScreen3);
 
       //Artist name
-      var artistName = "afrojack";
+      var artistName = $scope.person;
       var currentArtistText = new THREE.TextGeometry(artistName, {
         size: 40,
         height: 1
@@ -488,7 +486,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
       currentArtistTextMesh.rotation.y = -270;
 
       scene.add(currentArtistTextMesh);
-      
+
       var focus = new THREE.PointLight(0x00ccff, 1, 20);
       focus.position.set(0, 0, -10);
       camera.add(focus);
