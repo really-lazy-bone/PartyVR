@@ -470,6 +470,23 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
       movieScreen3.rotateY(-30);
     	scene.add(movieScreen3);
 
+      //Artist name
+      var artistName = "afrojack";
+      var currentArtistText = new THREE.TextGeometry(artistName, {
+        size: 40,
+        height: 1
+      });
+      var currentArtistTextMesh = new THREE.Mesh(currentArtistText, new THREE.MeshBasicMaterial({
+        color: 0xffffff, opacity: 1
+      }))
+      currentArtistTextMesh.position.y = 360;
+      currentArtistTextMesh.position.z = 30;
+      currentArtistTextMesh.position.x = -80;
+      currentArtistTextMesh.rotation.x = -100;
+      currentArtistTextMesh.rotation.y = -270;
+
+      scene.add(currentArtistTextMesh);
+      
       var focus = new THREE.PointLight(0x00ccff, 1, 20);
       focus.position.set(0, 0, -10);
       camera.add(focus);
