@@ -42,6 +42,11 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
         url: '/video-receiver',
         templateUrl: 'templates/video-receiver.html',
         controller: 'VideoReceiverCtrl'
+      })
+      .state('video-gl', {
+        url: '/video-gl',
+        templateUrl: 'templates/video-gl.html',
+        controller: 'VideoGlCtrl'
       });
     $urlRouterProvider.otherwise('/home');
 })
@@ -50,9 +55,20 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
   $scope.currentItemIndex = 0;
   $scope.doubleClicked = false;
   $scope.dj = $stateParams.dj;
+  $scope.goToVideo = goToVideo;
+  $scope.interactingWithVideo = false;
+  $scope.$watch('interactingWithVideo', function(val) {
+    if (val) {
+      $scope.hideMenu = true;
+    }
+  });
 
   document.querySelector('video-wall')
     .addEventListener('click', function() {
+      if ($scope.interactingWithVideo) {
+        $scope.goToVideo();
+        return;
+      }
       $timeout(function() {
         if (!$scope.doubleClicked) {
           $scope.currentItemIndex ++;
@@ -85,6 +101,10 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
         $scope.doubleClicked = false;
       }, 500);
     }, false);
+
+  function goToVideo() {
+    $state.go('video-gl');
+  }
 })
 
 .controller('HomeCtrl', function($scope, $state) {
@@ -247,6 +267,10 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
       kandy.call.endCall($scope.callId);
       $scope.calling = false;
   };
+})
+
+.controller('VideoGlCtrl', function() {
+
 })
 
 .directive('splashScreen', [function() {
@@ -748,24 +772,30 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
 
       var cameraDirection = camera.getWorldDirection();
       raycasterPointer.position.set(camera.position.x + (cameraDirection.x * 17), camera.position.y + (cameraDirection.y * 17), camera.position.z + (cameraDirection.z * 17));
+      var interactingWithVideo = false;
 
       if (distance(movieScreen.position, raycasterPointer.position) < 200) {
+        interactingWithVideo = true;
         video.play();
       } else {
         video.pause();
       }
 
       if (distance(movieScreen2.position, raycasterPointer.position) < 350) {
+        interactingWithVideo = true;
         video2.play();
       } else {
         video2.pause();
       }
 
       if (distance(movieScreen3.position, raycasterPointer.position) < 350) {
+        interactingWithVideo = true;
         video3.play();
       } else {
         video3.pause();
       }
+
+      $scope.$parent.interactingWithVideo = interactingWithVideo;
 
       // PARTY ON
       ball.rotation.y += ballSpeed;
@@ -1121,5 +1151,139 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
   		color += letters[Math.round(Math.random() * 15)];
   	}
   	return color;
+  }
+}])
+
+.directive('videoGl', [function() {
+
+  return {
+    restrict: 'E',
+    link: function($scope, $element, $attr) {
+      create($element[0]);
+    }
+  }
+
+  function create(glFrame) {
+    var scene,
+        camera,
+        renderer,
+        element,
+        container,
+        effect,
+        controls,
+        clock;
+
+    init();
+
+    function init() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.001, 700);
+      camera.position.set(0, 15, 0);
+      scene.add(camera);
+
+      var geometry = new THREE.SphereGeometry(500, 60, 40);
+      geometry.applyMatrix(new THREE.Matrix4().makeScale(-1, 1, 1));
+
+      var video = document.createElement('video');
+      // video.autoplay = true;
+      video.src = "videos/360-video.mp4";
+      video.loop = true;
+      video.autoplay =  true;
+      // video.setAttribute('crossorigin', 'anonymous');
+
+      var texture = new THREE.VideoTexture(video);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.format = THREE.RGBFormat;
+
+      var material = new THREE.MeshBasicMaterial({
+        map: texture
+      });
+
+      mesh = new THREE.Mesh(geometry, material);
+
+      scene.add(mesh);
+
+      renderer = new THREE.WebGLRenderer();
+      element = renderer.domElement;
+      container = glFrame;
+      container.appendChild(element);
+
+      effect = new THREE.StereoEffect(renderer);
+
+      // Our initial control fallback with mouse/touch events in case DeviceOrientation is not enabled
+      controls = new THREE.OrbitControls(camera, element);
+      controls.target.set(
+        camera.position.x + 0.15,
+        camera.position.y,
+        camera.position.z
+      );
+      controls.noPan = true;
+      controls.noZoom = true;
+
+      // Our preferred controls via DeviceOrientation
+      function setOrientationControls(e) {
+        if (!e.alpha) {
+          return;
+        }
+
+        controls = new THREE.DeviceOrientationControls(camera, true);
+        controls.connect();
+        controls.update();
+
+        element.addEventListener('click', fullscreen, false);
+
+        window.removeEventListener('deviceorientation', setOrientationControls, true);
+      }
+      window.addEventListener('deviceorientation', setOrientationControls, true);
+
+      clock = new THREE.Clock();
+
+      animate();
+    }
+
+    function animate() {
+      var elapsedSeconds = clock.getElapsedTime();
+
+      requestAnimationFrame(animate);
+
+      update(clock.getDelta());
+      render(clock.getDelta());
+    }
+
+    function resize() {
+      var width = container.offsetWidth;
+      var height = container.offsetHeight;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(width, height);
+      effect.setSize(width, height);
+    }
+
+    function update(dt) {
+      resize();
+
+      camera.updateProjectionMatrix();
+
+      controls.update(dt);
+    }
+
+    function render(dt) {
+      effect.render(scene, camera);
+    }
+
+    function fullscreen() {
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if (container.msRequestFullscreen) {
+        container.msRequestFullscreen();
+      } else if (container.mozRequestFullScreen) {
+        container.mozRequestFullScreen();
+      } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen();
+      }
+    }
   }
 }]);
