@@ -1,3 +1,10 @@
+var projectAPIKey = 'DAK7b4967e33538456e80d13b87f3dd2919';
+var username = 'test';
+var password = 'atthackathon2016';
+var username2 = 'test2';
+var password2 = 'atthackathon2016';
+var kandyDomain = 'quiztv.gmail.com';
+
 angular.module('PartyVR', ['ionic', 'ngCordova'])
 
 .run(function($ionicPlatform) {
@@ -25,6 +32,16 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
         url: '/video-wall/:dj',
         templateUrl: 'templates/video-wall.html',
         controller: 'VideoCtrl'
+      })
+      .state('video-call', {
+        url: '/video-call/:dj',
+        templateUrl: 'templates/video-call.html',
+        controller: 'VideoCallCtrl'
+      })
+      .state('video-receiver', {
+        url: '/video-receiver',
+        templateUrl: 'templates/video-receiver.html',
+        controller: 'VideoReceiverCtrl'
       });
     $urlRouterProvider.otherwise('/home');
 })
@@ -62,6 +79,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
         $state.go('video-wall', {dj: newDj});
       } else  if ($scope.currentItemIndex === 2) {
         // go to webrtc call screen
+        $state.go('video-call');
       }
       $timeout(function() {
         $scope.doubleClicked = false;
@@ -73,6 +91,162 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
   $scope.goToProfile = function() {
     $state.go('video-wall', {dj: 'afrojack'});
   }
+})
+
+.controller('VideoCallCtrl', function($scope, $state, $stateParams, $timeout) {
+  $scope.dj = $stateParams.dj;
+  $timeout(function() {
+      kandy.setup({
+          // Containers for streaming elements.
+          remoteVideoContainer: document.getElementById('video_call'),
+          localVideoContainer: document.getElementById('local_call'),
+          // Register listeners to call events.
+          listeners: {
+              callinitiated: onCallInitiated,
+              callestablished: onCallEstablished,
+              callended: onCallEnded
+          },
+          autoreconnect: true,
+          registerforcalls: true
+      });
+      $scope.data = {};
+      $timeout(function() {
+        kandy.login(projectAPIKey, username, password, function() {
+            $timeout(function() {
+              kandy.call.makeCall('test2@' + kandyDomain, true);
+            }, 2000);
+        }, function() {
+            alert('failure while logging into kandy');
+        });
+      }, 1000);
+  });
+
+  function onCallInitiated(call, callee) {
+      alert('Call initialized');
+      $scope.callId = call.getId();
+  }
+
+  function onCallEstablished(call) {
+      $scope.callIncoming = false;
+      $scope.outCalling = true;
+      alert('Call established');
+      $scope.$digest();
+  }
+
+  function onCallEnded (call) {
+      alert('Call ended');
+  }
+
+  $scope.users = [
+      {
+          name: 'Teacher Liao',
+          role: 'teacher',
+          username: 'test',
+          password: 'atthackathon2016'
+      },
+      {
+          name: 'Jane Doe',
+          role: 'student',
+          username: 'test2',
+          password: 'atthackathon2016'
+      }
+  ];
+
+  $scope.callForHelp = function() {
+      $scope.calling = true;
+  };
+
+  $scope.pickUpCall = function() {
+      kandy.call.answerCall($scope.callId, true);
+  };
+
+  $scope.endCall = function() {
+      kandy.call.endCall($scope.callId);
+      $scope.calling = false;
+  };
+})
+
+.controller('VideoReceiverCtrl', function($scope, $state, $stateParams, $timeout) {
+  $timeout(function() {
+      kandy.setup({
+          // Containers for streaming elements.
+          remoteVideoContainer: document.getElementById('video_call'),
+          localVideoContainer: document.getElementById('local_call'),
+          // Register listeners to call events.
+          listeners: {
+              callinitiated: onCallInitiated,
+              callincoming: onCallIncoming,
+              callestablished: onCallEstablished,
+              callended: onCallEnded
+          },
+          autoreconnect: true,
+          registerforcalls: true
+      });
+      $scope.data = {};
+      kandy.login(projectAPIKey, username2, password2, function() {
+          console.log('successfully logged into Kandy');
+      }, function() {
+          console.log('failure while logging into kandy');
+      });
+  });
+
+  function onCallInitiated(call, callee) {
+      console.log('Call initialized');
+      $scope.callId = call.getId();
+  }
+
+  function onCallIncoming(call) {
+      $scope.calling = true;
+      $scope.callId = call.getId();
+      kandy.call.answerCall($scope.callId, true);
+      $scope.$digest();
+  }
+
+  function onCallEstablished(call) {
+      $scope.callIncoming = false;
+      $scope.outCalling = true;
+      console.log('Call established');
+      $scope.$digest();
+  }
+
+  function onCallEnded (call) {
+      alert('Call ended');
+  }
+
+  $scope.users = [
+      {
+          name: 'Teacher Liao',
+          role: 'teacher',
+          username: 'test',
+          password: 'atthackathon2016'
+      },
+      {
+          name: 'Jane Doe',
+          role: 'student',
+          username: 'test2',
+          password: 'atthackathon2016'
+      }
+  ];
+
+  $scope.callForHelp = function() {
+      $scope.calling = true;
+  };
+
+  $scope.callUser = function(user) {
+      if ($scope.kandyReady) {
+          // Tell Kandy to make a call to callee.
+          kandy.call.makeCall(user.username + '@' + kandyDomain, true);
+      }
+  };
+
+  $scope.pickUpCall = function() {
+      kandy.call.answerCall($scope.callId, true);
+  };
+
+  $scope.endCall = function() {
+      kandy.call.endCall($scope.callId);
+      $scope.calling = false;
+  };
 })
 
 .directive('splashScreen', [function() {
@@ -347,8 +521,6 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
 
       	scene.add(lightTargets[i]);
 
-        console.log(lightTargets[i].position);
-
       	spotlights[i].target = lightTargets[i];
       }
 
@@ -490,7 +662,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
       var focus = new THREE.PointLight(0x00ccff, 1, 20);
       focus.position.set(0, 0, -10);
       camera.add(focus);
-      raycasterPointer = new THREE.Mesh(new THREE.SphereGeometry(.2, 32, 32), new THREE.MeshBasicMaterial({color: 0xff0000}));
+      raycasterPointer = new THREE.Mesh(new THREE.SphereGeometry(0.4, 32, 32), new THREE.MeshBasicMaterial({color: 0x008ff0}));
       scene.add(raycasterPointer);
 
     	camera.position.set(0,200,200);
@@ -571,6 +743,326 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
         video3.play();
       } else {
         video3.pause();
+      }
+
+      // PARTY ON
+      ball.rotation.y += ballSpeed;
+      for(var i=0;i<lightAmount;i++){
+
+    		if(lightTargets[i].position.x < 200&&lightTargets[i].position.z < 200){
+
+    			lightTargets[i].position.x=lightTargets[i].position.x+(Math.random()*200-100)*lightSpeed;
+    			lightTargets[i].position.z=lightTargets[i].position.z+(Math.random()*200-100)*lightSpeed;
+    		}
+    		else {
+    			lightTargets[i].position.x=Math.random()*500-100;
+    			lightTargets[i].position.z=Math.random()*200-100;
+    		}
+    	}
+
+    	effect.render( scene, camera );
+    }
+
+    function distance(a, b) {
+      deltaX = b.x - a.x;
+      deltaY = b.y - a.y;
+      deltaZ = b.z - a.z;
+      var d = Math.sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
+      return d;
+    }
+  }
+
+  function getRandomColor() {
+  	var letters = '0123456789ABCDEF'.split('');
+  	var color = '#';
+  	for (var i = 0; i < 6; i++ ) {
+  		color += letters[Math.round(Math.random() * 15)];
+  	}
+  	return color;
+  }
+}])
+
+.directive('videoCall', [function() {
+
+  return {
+    restrict: 'E',
+    scope: {
+      person: '='
+    },
+    link: function($scope, $element, $attr) {
+      create($element[0], $scope);
+    }
+  }
+
+  function create(glFrame, $scope) {
+    // MAIN
+
+    // standard global variables
+    var container, scene, camera, renderer, controls;
+
+    // custom global variables
+    var video, videoImage, videoImageContext, videoTexture, movieScreen;
+
+    // custom global variables
+    var ball;
+    var ballSpeed = 0.06; //default ball speed
+    var lightSpeed = 0.5;
+
+    //array of lights
+    var spotlights = [];
+    var lightTargets = [];
+    var lightColors = [];
+    var lightAmount = 30;
+
+    //create an array of floor and wall spotlights:
+    for (var i=0; i<lightAmount ;i++){
+
+    	lightColors[i] = getRandomColor();
+    	//for floor
+    	spotlights[i] = new THREE.SpotLight(lightColors[i]);
+    	spotlights[i].position.set(0,500,200);
+    	spotlights[i].shadowCameraVisible = true;
+    	spotlights[i].intensity = 3;
+    	spotlights[i].castShadow = true;
+    	spotlights[i].angle = Math.PI/30;
+    	lightTargets[i] = new THREE.Object3D();
+
+    }
+
+    var raycasterPointer;
+
+    var scene,
+      camera,
+      renderer,
+      element,
+      container,
+      effect,
+      controls,
+      clock;
+
+    init();
+    animate();
+
+    // FUNCTIONS
+    function init()
+    {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.001, 700);
+      camera.position.set(0, 180, 0);
+      scene.add(camera);
+  		renderer = new THREE.WebGLRenderer();
+      element = renderer.domElement;
+      container = glFrame;
+      container.appendChild(element);
+
+      effect = new THREE.StereoEffect(renderer);
+
+      // Our initial control fallback with mouse/touch events in case DeviceOrientation is not enabled
+      controls = new THREE.OrbitControls(camera, element);
+      controls.target.set(
+        camera.position.x + 0.15,
+        camera.position.y,
+        camera.position.z
+      );
+      controls.noPan = true;
+      controls.noZoom = true;
+    	// LIGHT
+      var directionalLight1 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+    	directionalLight1.position.set( 1, 0, 0 );
+    	scene.add( directionalLight1 );
+    	var directionalLight2 = new THREE.DirectionalLight( 0xffffff, 0.2 );
+    	directionalLight2.position.set( 0, 1, 0 );
+    	scene.add( directionalLight2 );
+    	var directionalLight3 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+    	directionalLight3.position.set( 0, 0, 1 );
+    	scene.add( directionalLight3 );
+    	var directionalLight4 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+    	directionalLight4.position.set( -1, 0, 0 );
+    	scene.add( directionalLight4 );
+    	var directionalLight5 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+    	directionalLight5.position.set( 0, 0, -1 );
+    	scene.add( directionalLight5 );
+    	// FLOOR
+    	var floorTexture = new THREE.ImageUtils.loadTexture( 'img/checkerboard.jpg' );
+    	floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+    	floorTexture.repeat.set( 10, 10 );
+    	var floorMaterial = new THREE.MeshLambertMaterial( { map: floorTexture, side: THREE.DoubleSide } );
+    	var floorGeometry = new THREE.PlaneBufferGeometry(1000, 1000, 10, 10);
+    	var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    	floor.position.y = -0.5;
+    	floor.rotation.x = Math.PI / 2;
+      floor.receiveShadow = true;
+
+    	scene.add(floor);
+    	// SKYBOX/FOG
+      // BOX container MATERIAL
+    	var cubeMaterialArray = [];
+    	// order to add materials: x+,x-,y+,y-,z+,z-
+    	var wallTexture = new THREE.ImageUtils.loadTexture( 'img/dark-space-texture.jpg' );
+    	// floor: mesh to receive shadows
+    	cubeMaterialArray.push(new THREE.MeshLambertMaterial({ map: wallTexture, side: THREE.DoubleSide }));
+    	cubeMaterialArray.push(new THREE.MeshLambertMaterial({ map: wallTexture, side: THREE.DoubleSide }));
+    	cubeMaterialArray.push(new THREE.MeshBasicMaterial({ map: wallTexture, side: THREE.DoubleSide }));
+
+    	cubeMaterialArray.push(new THREE.MeshLambertMaterial({ map: wallTexture, side: THREE.DoubleSide }));
+    	cubeMaterialArray.push(new THREE.MeshLambertMaterial({ map: wallTexture, side: THREE.DoubleSide }));
+    	cubeMaterialArray.push(new THREE.MeshLambertMaterial({ map: wallTexture, side: THREE.DoubleSide }));
+    	var skyBoxMaterial = new THREE.MeshFaceMaterial(cubeMaterialArray);
+
+    	var skyBoxGeometry = new THREE.CubeGeometry( 1000, 1000, 1000 );
+    	var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
+    	scene.add(skyBox);
+    	scene.fog = new THREE.FogExp2( 0x9999ff, 0 );
+
+      // ball
+    	var ballContainer = new THREE.Object3D();
+    	var radius = 100;
+    	var distance = 500;
+    	var colors = [];
+
+    	var sphereGeometry = new THREE.SphereGeometry( radius, 32, 32);
+    	var texture = new THREE.ImageUtils.loadTexture('img/discoBallTexture.jpg');
+
+      var sphereMaterial = new THREE.MeshBasicMaterial( {map: texture} );
+    	ball = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    	ball.position.set(0, distance, 200);
+
+    	ballContainer.add(ball);
+    	scene.add(ballContainer);
+
+      //======================================================//
+      //position the array of lights onto the scene
+      for (var i=0; i<lightAmount ;i++){
+      	scene.add(spotlights[i]);
+
+      	lightTargets[i].position.x=Math.random()*500-100;
+      	lightTargets[i].position.y=200;
+      	lightTargets[i].position.z=Math.random()*300-100;
+
+      	scene.add(lightTargets[i]);
+
+        console.log(lightTargets[i].position);
+
+      	spotlights[i].target = lightTargets[i];
+      }
+
+
+    	///////////
+    	// VIDEO //
+    	///////////
+
+    	// create the video element
+    	// video = document.createElement( 'video' );
+    	// // video.id = 'video';
+    	// // video.type = ' video/ogg; codecs="theora, vorbis" ';
+    	// video.src = "videos/" + $scope.person + "-1.mp4";
+    	// video.load(); // must call after setting/changing source
+    	// video.play();
+
+    	// alternative method --
+    	// create DIV in HTML:
+    	// <video id="myVideo" autoplay style="display:none">
+    	//		<source src="videos/sintel.ogv" type='video/ogg; codecs="theora, vorbis"'>
+    	// </video>
+    	// and set JS variable:
+    	video = document.getElementById( 'video_call' );
+
+    	videoImage = document.createElement( 'canvas' );
+    	videoImage.width = 360;
+    	videoImage.height = 360;
+
+    	videoImageContext = videoImage.getContext( '2d' );
+    	// background color if no video present
+    	videoImageContext.fillStyle = '#000000';
+    	videoImageContext.fillRect( 0, 0, videoImage.width, videoImage.height );
+
+    	videoTexture = new THREE.Texture( videoImage );
+    	videoTexture.minFilter = THREE.LinearFilter;
+    	videoTexture.magFilter = THREE.LinearFilter;
+
+    	var movieMaterial = new THREE.MeshBasicMaterial( { map: videoTexture, overdraw: true, side:THREE.DoubleSide } );
+    	// the geometry on which the movie will be displayed;
+    	// 		movie image will be scaled to fit these dimensions.
+    	var movieGeometry = new THREE.PlaneBufferGeometry( 360, 360, 4, 4 );
+    	movieScreen = new THREE.Mesh( movieGeometry, movieMaterial );
+    	movieScreen.position.set(-60,180,0);
+    	scene.add(movieScreen);
+
+      //Artist name
+      var artistName = $scope.person;
+      var currentArtistText = new THREE.TextGeometry(artistName, {
+        size: 40,
+        height: 1
+      });
+      var currentArtistTextMesh = new THREE.Mesh(currentArtistText, new THREE.MeshBasicMaterial({
+        color: 0xffffff, opacity: 1
+      }))
+      currentArtistTextMesh.position.y = 360;
+      currentArtistTextMesh.position.z = 30;
+      currentArtistTextMesh.position.x = -80;
+      currentArtistTextMesh.rotation.x = -100;
+      currentArtistTextMesh.rotation.y = -270;
+
+      scene.add(currentArtistTextMesh);
+
+      var focus = new THREE.PointLight(0x00ccff, 1, 20);
+      focus.position.set(0, 0, -10);
+      camera.add(focus);
+      raycasterPointer = new THREE.Mesh(new THREE.SphereGeometry(.2, 32, 32), new THREE.MeshBasicMaterial({color: 0xff0000}));
+      scene.add(raycasterPointer);
+
+    	camera.position.set(0,200,200);
+      // Our preferred controls via DeviceOrientation
+      function setOrientationControls(e) {
+        if (!e.alpha) {
+          return;
+        }
+
+        controls = new THREE.DeviceOrientationControls(camera, true);
+        controls.connect();
+        controls.update();
+
+        window.removeEventListener('deviceorientation', setOrientationControls, true);
+      }
+      window.addEventListener('deviceorientation', setOrientationControls, true);
+    }
+
+    function animate()
+    {
+      requestAnimationFrame( animate );
+    	render();
+    	update();
+    }
+
+    function update()
+    {
+      var width = container.offsetWidth;
+      var height = container.offsetHeight;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(width, height);
+      effect.setSize(width, height);
+    	controls.update();
+    }
+
+    function render()
+    {
+    	if ( video.readyState === video.HAVE_ENOUGH_DATA )
+    	{
+    		videoImageContext.drawImage( video, 0, 0 );
+    		if ( videoTexture )
+    			videoTexture.needsUpdate = true;
+    	}
+
+      var cameraDirection = camera.getWorldDirection();
+      raycasterPointer.position.set(camera.position.x + (cameraDirection.x * 17), camera.position.y + (cameraDirection.y * 17), camera.position.z + (cameraDirection.z * 17));
+
+      if (distance(movieScreen.position, raycasterPointer.position) < 200) {
+        video.play();
+      } else {
+        video.pause();
       }
 
       // PARTY ON

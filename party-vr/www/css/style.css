@@ -63,11 +63,12 @@ splash-screen {
 }
 .menu-item {
   padding: 0.5em 1em;
-  font-weight: 800;
+  font-weight: 700;
   border-left: solid transparent 0.5em;
 }
 .menu-item.active {
-  border-left: solid #f00 0.5em;
+  border-left: solid rgb(0,175,240) 0.5em;
+  color: rgb(0,175,240);
 }
 
 .overlay h1 {
@@ -111,6 +112,19 @@ video.fullscreen {
   position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
+  height: 100%;
+}
+.video-container {
+  display: flex;
+}
+#video_call,
+#local_call {
+  flex: 1;
+}
+#video_call video,
+#local_call video {
+  display: block;
   width: 100%;
   height: 100%;
 }
