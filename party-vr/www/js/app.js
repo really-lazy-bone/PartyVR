@@ -57,11 +57,6 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
   $scope.dj = $stateParams.dj;
   $scope.goToVideo = goToVideo;
   $scope.interactingWithVideo = false;
-  $scope.$watch('interactingWithVideo', function(val) {
-    if (val) {
-      $scope.hideMenu = true;
-    }
-  });
 
   document.querySelector('video-wall')
     .addEventListener('click', function() {
@@ -571,8 +566,8 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	// video = document.getElementById( 'myVideo' );
 
     	videoImage = document.createElement( 'canvas' );
-    	videoImage.width = 360;
-    	videoImage.height = 360;
+    	videoImage.width = 400;
+    	videoImage.height = 250;
 
     	videoImageContext = videoImage.getContext( '2d' );
     	// background color if no video present
@@ -586,9 +581,9 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	var movieMaterial = new THREE.MeshBasicMaterial( { map: videoTexture, overdraw: true, side:THREE.DoubleSide } );
     	// the geometry on which the movie will be displayed;
     	// 		movie image will be scaled to fit these dimensions.
-    	var movieGeometry = new THREE.PlaneBufferGeometry( 360, 360, 4, 4 );
+    	var movieGeometry = new THREE.PlaneBufferGeometry( 400, 250, 4, 4 );
     	movieScreen = new THREE.Mesh( movieGeometry, movieMaterial );
-    	movieScreen.position.set(-60,180,0);
+    	movieScreen.position.set(-60,180,-100);
     	scene.add(movieScreen);
 
       // create the video element
@@ -608,8 +603,8 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	// video = document.getElementById( 'myVideo' );
 
     	videoImage2 = document.createElement( 'canvas' );
-    	videoImage2.width = 360;
-    	videoImage2.height = 360;
+    	videoImage2.width = 400;
+    	videoImage2.height = 250;
 
     	videoImageContext2 = videoImage2.getContext( '2d' );
     	// background color if no video present
@@ -623,7 +618,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	var movieMaterial2 = new THREE.MeshBasicMaterial( { map: videoTexture2, overdraw: true, side:THREE.DoubleSide } );
     	// the geometry on which the movie will be displayed;
     	// 		movie image will be scaled to fit these dimensions.
-    	var movieGeometry2 = new THREE.PlaneBufferGeometry( 360, 360, 4, 4 );
+    	var movieGeometry2 = new THREE.PlaneBufferGeometry( 400, 250, 4, 4 );
     	movieScreen2 = new THREE.Mesh( movieGeometry2, movieMaterial2 );
     	movieScreen2.position.set(360,180,150);
       movieScreen2.rotateY(30);
@@ -646,8 +641,8 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	// video = document.getElementById( 'myVideo' );
 
     	videoImage3 = document.createElement( 'canvas' );
-    	videoImage3.width = 360;
-    	videoImage3.height = 360;
+    	videoImage3.width = 400;
+    	videoImage3.height = 250;
 
     	videoImageContext3 = videoImage3.getContext( '2d' );
     	// background color if no video present
@@ -661,7 +656,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
     	var movieMaterial3 = new THREE.MeshBasicMaterial( { map: videoTexture3, overdraw: true, side:THREE.DoubleSide } );
     	// the geometry on which the movie will be displayed;
     	// 		movie image will be scaled to fit these dimensions.
-    	var movieGeometry3 = new THREE.PlaneBufferGeometry( 360, 360, 4, 4 );
+    	var movieGeometry3 = new THREE.PlaneBufferGeometry( 400, 250, 4, 4 );
     	movieScreen3 = new THREE.Mesh( movieGeometry3, movieMaterial3 );
     	movieScreen3.position.set(-360,180,150);
       movieScreen3.rotateY(-30);
@@ -774,7 +769,7 @@ angular.module('PartyVR', ['ionic', 'ngCordova'])
       raycasterPointer.position.set(camera.position.x + (cameraDirection.x * 17), camera.position.y + (cameraDirection.y * 17), camera.position.z + (cameraDirection.z * 17));
       var interactingWithVideo = false;
 
-      if (distance(movieScreen.position, raycasterPointer.position) < 200) {
+      if (distance(movieScreen.position, raycasterPointer.position) < 295) {
         interactingWithVideo = true;
         video.play();
       } else {
